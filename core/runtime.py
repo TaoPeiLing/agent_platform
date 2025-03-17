@@ -347,35 +347,62 @@ class RuntimeService:
             # 确保session_id同步
             if hasattr(context, "session_id") and not context.session_id:
                 context.session_id = session_id
+            
+            # 记录上下文类型和内容摘要，用于调试
+            context_summary = {
+                "type": type(context).__name__,
+                "has_user_info": hasattr(context, "user_id") and hasattr(context, "user_name"),
+                "has_metadata": hasattr(context, "metadata") and bool(getattr(context, "metadata", None)),
+                "session_id": session_id
+            }
+            logger.debug(f"使用提供的上下文: {context_summary}")
+            
             return context
         
         # 创建新的上下文对象
         session = self.get_session(session_id)
         if not session:
             # 如果会话不存在，创建一个基本的上下文
+            logger.warning(f"会话不存在: {session_id}，创建基本上下文")
             return AgentContext(session_id=session_id)
         
         # 使用会话信息创建上下文
-        user_name = session.metadata.get("user_name", "用户") if session.metadata else "用户"
+        # 提取更多元数据
+        metadata = {}
+        if hasattr(session, "metadata") and session.metadata:
+            if isinstance(session.metadata, dict):
+                metadata = session.metadata.copy()
+            else:
+                # 尝试从session.metadata对象中提取属性
+                for attr in dir(session.metadata):
+                    if not attr.startswith('_') and not callable(getattr(session.metadata, attr)):
+                        try:
+                            metadata[attr] = getattr(session.metadata, attr)
+                        except Exception as e:
+                            logger.warning(f"无法提取元数据属性 {attr}: {e}")
+        
+        # 提取用户名
+        user_name = metadata.get("user_name", "用户") if metadata else "用户"
         
         # 创建包含用户信息和会话历史的上下文对象
         agent_context = AgentContext(
             user_id=session.user_id or "anonymous",
             user_name=user_name,
             session_id=session_id,
-            metadata=session.metadata.copy() if session.metadata else {},
-            created_at=session.created_at,
-            last_active=session.last_active
+            metadata=metadata,
+            created_at=session.created_at if hasattr(session, "created_at") else time.time(),
+            last_active=session.last_active if hasattr(session, "last_active") else time.time()
         )
         
         # 从会话历史填充消息
-        for item in session.history:
-            if item.get("role") in ["user", "assistant", "system", "tool"]:
-                agent_context.add_message(
-                    item.get("role"),
-                    item.get("content", ""),
-                    **{k: v for k, v in item.items() if k not in ["role", "content"]}
-                )
+        if hasattr(session, "history") and session.history:
+            for item in session.history:
+                if isinstance(item, dict) and item.get("role") in ["user", "assistant", "system", "tool"]:
+                    agent_context.add_message(
+                        item.get("role"),
+                        item.get("content", ""),
+                        **{k: v for k, v in item.items() if k not in ["role", "content"]}
+                    )
         
         # 设置RBAC相关权限
         if hasattr(session, "roles") and session.roles:
@@ -386,6 +413,9 @@ class RuntimeService:
             agent_context.set_permission("web_search", True)  # 所有用户都可以使用网络搜索
             agent_context.set_permission("file_access", is_developer or is_admin)  # 开发者和管理员可以访问文件
             agent_context.set_permission("system_access", is_admin)  # 只有管理员可以访问系统
+        
+        # 记录创建的上下文摘要
+        logger.debug(f"创建新上下文: user_id={agent_context.user_id}, user_name={agent_context.user_name}, metadata_keys={list(agent_context.metadata.keys() if agent_context.metadata else [])}")
         
         return agent_context
 
@@ -423,13 +453,49 @@ class RuntimeService:
         # 记录用户输入
         self.add_history_item(session_id, "user", input_text)
 
+        # 准备上下文
+        prepared_context = self._prepare_context(context, session_id)
+        
+        # 从上下文中提取用户信息，用于增强系统消息
+        user_info = {}
+        if hasattr(prepared_context, "user_id"):
+            user_info["user_id"] = prepared_context.user_id
+        if hasattr(prepared_context, "user_name"):
+            user_info["user_name"] = prepared_context.user_name
+        if hasattr(prepared_context, "metadata") and prepared_context.metadata:
+            user_info["metadata"] = prepared_context.metadata
+        
+        # 增强系统消息，添加用户信息
+        enhanced_system_message = system_message
+        if user_info:
+            # 如果已有系统消息，在其基础上添加用户信息
+            if enhanced_system_message:
+                enhanced_system_message = f"{enhanced_system_message}\n\n用户信息:\n"
+            else:
+                enhanced_system_message = "用户信息:\n"
+            
+            # 添加用户ID和名称
+            if "user_id" in user_info:
+                enhanced_system_message += f"- 用户ID: {user_info['user_id']}\n"
+            if "user_name" in user_info:
+                enhanced_system_message += f"- 用户名称: {user_info['user_name']}\n"
+            
+            # 添加重要元数据
+            if "metadata" in user_info and isinstance(user_info["metadata"], dict):
+                important_fields = ["preference", "language", "role", "permission_level"]
+                for field in important_fields:
+                    if field in user_info["metadata"]:
+                        enhanced_system_message += f"- {field}: {user_info['metadata'][field]}\n"
+            
+            logger.info(f"增强的系统消息: {enhanced_system_message[:100]}...")
+
         # 准备代理实例
         if agent is None and template_name:
             try:
-                # 从模板管理器获取模板，传递系统消息
+                # 从模板管理器获取模板，传递增强的系统消息
                 agent = template_manager.get_template(
                     template_name,
-                    system_message=system_message  # 如果提供了系统消息，传递给模板管理器
+                    system_message=enhanced_system_message  # 使用增强的系统消息
                 )
                 if not agent:
                     logger.error(f"模板不存在: {template_name}")
@@ -449,10 +515,10 @@ class RuntimeService:
                     "success": False,
                     "error": f"代理模板不存在: {template_name}"
                 }
-        # 如果已提供agent但同时也提供了system_message，使用系统消息覆盖指令
-        elif agent and system_message:
-            agent = agent.clone(instructions=system_message)
-            logger.info(f"使用提供的系统消息覆盖代理指令: {system_message[:50]}...")
+        # 如果已提供agent但同时也提供了系统消息，使用增强的系统消息覆盖指令
+        elif agent and enhanced_system_message:
+            agent = agent.clone(instructions=enhanced_system_message)
+            logger.info(f"使用增强的系统消息覆盖代理指令: {enhanced_system_message[:50]}...")
 
         if agent is None:
             logger.error("未提供代理实例或有效的模板名称")
@@ -466,9 +532,6 @@ class RuntimeService:
 
         # 准备运行配置
         run_config = config or self.default_config
-        
-        # 准备上下文
-        prepared_context = self._prepare_context(context, session_id)
         
         # 准备输入消息 - 使用AgentContext的to_api_messages方法
         input_messages = []
@@ -523,7 +586,7 @@ class RuntimeService:
         try:
             # 执行代理
             logger.info("=============开始运行代理==============")
-            logger.info(f"agent代理{agent}")
+            # logger.info(f"agent代理{agent}")
             result = await Runner.run(
                 starting_agent=agent,
                 input=input_messages if input_messages else input_text,  # 使用消息历史或文本
