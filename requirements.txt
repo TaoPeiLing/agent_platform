@@ -1,0 +1,68 @@
+# 核心依赖
+openai==1.14.0
+openai-agents==0.1.0
+
+# Web框架
+fastapi>=0.110.0
+uvicorn>=0.28.0
+pydantic>=2.5.0
+websockets>=12.0
+
+# 客户端依赖
+requests>=2.31.0
+sseclient-py>=1.8.0
+aiohttp>=3.9.1
+
+# 环境和配置
+python-dotenv>=1.0.0
+colorlog>=6.8.0
+certifi>=2024.2.2
+pydantic>=2.5.0
+dataclasses-json>=0.6.1
+
+# 工具和辅助库
+typing_extensions>=4.9.0
+pytest>=7.4.0
+
+# 异步支持
+httpx>=0.25.0
+asyncio>=3.4.3
+
+# 数据连接器
+psycopg2-binary>=2.9.9
+pymongo>=4.6.0
+redis>=5.0.1
+
+# 数据处理
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# 工具支持库
+cryptography>=41.0.0
+
+# 监控（可选）
+prometheus-client>=0.17.1
+opentelemetry-api>=1.19.0
+opentelemetry-sdk>=1.19.0
+
+# 安全与认证
+python-jose>=3.3.0
+passlib>=1.7.4
+bcrypt>=4.0.1
+
+# 开发和测试
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+black>=23.7.0
+pylint>=2.17.4
+isort>=5.12.0
+mypy>=1.5.1
+
+# 文档
+mkdocs>=1.5.2
+mkdocs-material>=9.1.21
+
+# 可选依赖
+# 如果需要使用国内模型，取消下面的注释
+# zhipuai>=1.0.0
+# baidu-aip>=4.16.10 

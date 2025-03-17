@@ -1,0 +1,65 @@
+{
+    "name": "普通用户助手",
+    "description": "一个具有普通用户权限的助手代理，可以执行基本任务",
+    "instructions": "你是一个适合普通用户使用的智能助手。你可以访问基本工具来帮助用户解决问题，但无法执行需要管理员权限的操作。",
+    "model": {
+        "provider": "zhipu",
+        "name": "glm-4",
+        "temperature": 0.7,
+        "settings": {
+            "top_p": 1.0,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0
+        }
+    },
+    "type": "chat",
+    "tools": [
+        {
+            "name": "search_weather",
+            "description": "查询指定位置的天气信息",
+            "type": "function",
+            "config": {
+                "parameters": {
+                    "location": {"type": "string", "description": "位置，如'北京'"},
+                    "date": {"type": "string", "description": "日期，如'2023-05-20'，不指定则为当天"}
+                },
+                "required": ["location"]
+            }
+        },
+        {
+            "name": "calculate",
+            "description": "执行数学计算",
+            "type": "function",
+            "config": {
+                "parameters": {
+                    "expression": {"type": "string", "description": "要计算的数学表达式"}
+                },
+                "required": ["expression"]
+            }
+        },
+        {
+            "name": "get_current_roles",
+            "description": "获取当前用户的角色列表",
+            "type": "function",
+            "config": {
+                "parameters": {}
+            }
+        },
+        {
+            "name": "list_allowed_tools",
+            "description": "列出当前用户有权限使用的工具",
+            "type": "function",
+            "config": {
+                "parameters": {}
+            }
+        }
+    ],
+    "tags": ["user", "general", "help"],
+    "metadata": {
+        "version": "1.0.0",
+        "creator": "Enterprise Agent Platform",
+        "created_at": "2023-01-01T00:00:00Z",
+        "usage_policy": "general-use",
+        "required_roles": ["user", "power_user", "admin", "system"]
+    }
+} 

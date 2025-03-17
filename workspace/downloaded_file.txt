@@ -1,0 +1,1 @@
+MOCK_DOWNLOAD_CONTENT:https://example.com/sample.txt

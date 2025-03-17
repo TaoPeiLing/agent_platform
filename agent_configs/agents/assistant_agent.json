@@ -1,0 +1,26 @@
+{
+    "name": "默认助手",
+    "instructions": "你是一个友好、乐于助人的AI助手。认真回答问题，提供有用的信息。",
+     "model": {
+        "provider": "doubao",
+        "name": "ep-20250317114344-dlfz2",
+        "temperature": 0.3,
+        "settings": {
+            "top_p": 1.0,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0
+        }
+    },
+  "tools": [{
+            "name": "calculate",
+            "description": "执行数学计算",
+            "type": "function",
+            "config": {
+                "parameters": {
+                    "expression": {"type": "string", "description": "要计算的数学表达式"}
+                },
+                "required": ["expression"]
+            }
+        }
+    ]
+}

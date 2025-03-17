@@ -1,0 +1,90 @@
+{
+    "name": "管理员助手",
+    "description": "一个具有管理员权限的助手代理，可以执行各种管理任务",
+    "instructions": "你是一个有管理员权限的智能助手。你可以访问和操作所有系统资源。请始终谨慎行事，并在执行敏感操作时进行确认。",
+    "model": {
+        "provider": "doubao",
+        "name": "ep-20250317114344-dlfz2",
+        "temperature": 0.3,
+        "settings": {
+            "top_p": 1.0,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0
+        }
+    },
+    "type": "chat",
+    "tools": [
+        {
+            "name": "search_weather",
+            "description": "查询指定位置的天气信息",
+            "type": "function",
+            "config": {
+                "parameters": {
+                    "location": {"type": "string", "description": "位置，如'北京'"},
+                    "date": {"type": "string", "description": "日期，如'2023-05-20'，不指定则为当天"}
+                },
+                "required": ["location"]
+            }
+        },
+        {
+            "name": "calculate",
+            "description": "执行数学计算",
+            "type": "function",
+            "config": {
+                "parameters": {
+                    "expression": {"type": "string", "description": "要计算的数学表达式"}
+                },
+                "required": ["expression"]
+            }
+        },
+        {
+            "name": "search_database",
+            "description": "搜索数据库",
+            "type": "function",
+            "config": {
+                "parameters": {
+                    "query": {"type": "string", "description": "查询语句"},
+                    "database": {"type": "string", "description": "数据库名称"}
+                },
+                "required": ["query"]
+            }
+        },
+        {
+            "name": "check_permission",
+            "description": "检查当前用户是否有权限执行特定操作",
+            "type": "function",
+            "config": {
+                "parameters": {
+                    "resource_type": {"type": "string", "description": "资源类型 (tool, agent, session, system)"},
+                    "resource_id": {"type": "string", "description": "资源ID"},
+                    "action": {"type": "string", "description": "操作名称"}
+                },
+                "required": ["resource_type", "resource_id", "action"]
+            }
+        },
+        {
+            "name": "get_current_roles",
+            "description": "获取当前用户的角色列表",
+            "type": "function",
+            "config": {
+                "parameters": {}
+            }
+        },
+        {
+            "name": "list_allowed_tools",
+            "description": "列出当前用户有权限使用的工具",
+            "type": "function",
+            "config": {
+                "parameters": {}
+            }
+        }
+    ],
+    "tags": ["admin", "system", "management"],
+    "metadata": {
+        "version": "1.0.0",
+        "creator": "Enterprise Agent Platform",
+        "created_at": "2023-01-01T00:00:00Z",
+        "usage_policy": "admin-only",
+        "required_roles": ["admin", "system"]
+    }
+} 

@@ -1,0 +1,68 @@
+{
+  "tools": [
+    {
+      "name": "search_weather",
+      "description": "查询指定位置的天气信息",
+      "type": "function",
+      "module": "agent_platform.tools.weather",
+      "function": "search_weather",
+      "parameters": {
+        "location": {"type": "string", "description": "位置，如'北京'"},
+        "date": {"type": "string", "description": "日期，如'2023-05-20'，不指定则为当天"}
+      },
+      "required": ["location"]
+    },
+    {
+      "name": "calculate",
+      "description": "计算数学表达式结果",
+      "type": "function",
+      "module": "agent_platform.tools.math",
+      "function": "calculate",
+      "parameters": {
+        "expression": {"type": "string", "description": "数学表达式，如'2 + 3 * 4'"}
+      },
+      "required": ["expression"]
+    },
+    {
+      "name": "search_database",
+      "description": "搜索数据库",
+      "type": "class",
+      "module": "agent_platform.tools.database",
+      "class": "DatabaseManager",
+      "method": "search_database",
+      "init_args": {"db_dir": "./data/db"},
+      "parameters": {
+        "query": {"type": "string", "description": "查询语句"},
+        "database": {"type": "string", "description": "数据库名称"}
+      },
+      "required": ["query"]
+    },
+    {
+      "name": "read_file",
+      "description": "读取文件内容",
+      "type": "class",
+      "module": "agent_platform.tools.file",
+      "class": "FileManager",
+      "method": "read_file",
+      "init_args": {"base_dir": "./data"},
+      "parameters": {
+        "file_path": {"type": "string", "description": "文件路径"}
+      },
+      "required": ["file_path"]
+    },
+    {
+      "name": "write_file",
+      "description": "写入文件内容",
+      "type": "class",
+      "module": "agent_platform.tools.file",
+      "class": "FileManager",
+      "method": "write_file",
+      "init_args": {"base_dir": "./data"},
+      "parameters": {
+        "file_path": {"type": "string", "description": "文件路径"},
+        "content": {"type": "string", "description": "要写入的内容"}
+      },
+      "required": ["file_path", "content"]
+    }
+  ]
+}

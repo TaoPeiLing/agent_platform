@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # 代理平台API服务
+  agent-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.simple
+    container_name: sss-agent-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    volumes:
+      - ../logs:/app/logs
+    restart: unless-stopped
+    depends_on:
+      - redis
+  
+  # Redis用于缓存和简单消息队列
+  redis:
+    image: redis:alpine
+    container_name: sss-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+volumes:
+  redis-data: 
