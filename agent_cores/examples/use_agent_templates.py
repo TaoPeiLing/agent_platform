@@ -183,102 +183,134 @@ async def example_2_calculator_tool():
 
 
 async def example_3_multi_turn_conversation():
-    """示例3：多轮对话 - 使用SimpleContext进行标准化上下文管理
+    """示例3：多轮对话 - 使用会话管理服务结合SimpleContext进行上下文管理
     
-    这个示例展示如何使用SimpleContext类进行多轮对话上下文管理，
-    包括系统消息设置、添加用户和助手消息、以及使用同一上下文进行多轮交互。
+    这个示例展示如何将会话管理服务与SimpleContext结合使用，
+    遵循OpenAI Agent SDK的依赖注入模式，实现高效的多轮对话。
     """
-    logger.info("示例3：多轮对话 - 开始")
-
-    # 用户信息
-    user_id = "user_456"
-    user_name = "张三"
+    # 导入会话管理服务和桥接模块
+    from agent_cores.session import get_session_manager, SessionContextBridge
     
-    # 创建SimpleContext实例 - 标准化的上下文管理方式
-    context = SimpleContext(
-        user_id=user_id,
-        user_name=user_name,
-        metadata={
+    logger.info("示例3：多轮对话 - 开始")
+    
+    try:
+        # 用户信息
+        user_id = "user_456"
+        user_name = "张三"
+        
+        # 会话元数据
+        session_metadata = {
             "user_name": user_name,
             "preference": "简短回答",
-            "language": "zh-CN"
+            "language": "zh-CN",
+            "tags": ["example", "conversation"]
         }
-    )
-    
-    # 创建会话 - 确保与上下文用户ID一致
-    session_id = runtime_service.create_session(
-        user_id=user_id,
-        metadata=context.metadata
-    )
-    logger.info(f"创建新会话: {session_id}")
-
-    # 添加系统消息到上下文 - 使用SimpleContext的专用方法
-    system_message = f"""你是一个智能助手。
-当前用户的名字是{user_name}。
-请记住这个名字，当用户询问自己的名字时，你应该回答他的名字是{user_name}。
-请提供简短、有帮助的回答。"""
-
-    context.add_system_message(system_message)
-    logger.info("已添加系统消息到上下文")
-
-    # 获取代理实例
-    template_name = "assistant_agent"
-    agent = template_manager.get_template(template_name)
-    if not agent:
-        logger.error(f"无法获取代理模板: {template_name}")
-        return
-
-    logger.info(f"成功获取代理模板: {agent.name}")
-
-    # 多轮对话内容
-    conversations = [
-        "你好，请问你是谁?",
-        "苹果英文单词是什么？",
-        "我的名字是什么?",
-        "我向你提出了几个问题，分别是什么?"
-    ]
-
-    # 多轮对话 - 使用同一个SimpleContext对象
-    for i, message in enumerate(conversations):
-        logger.info(f"第{i + 1}轮对话，问题: {message}")
-        print(f"\n用户: {message}")
-
-        # 添加用户消息到上下文 - 使用SimpleContext的add_message方法
-        context.add_message("user", message)
         
-        # 运行代理 - 传递标准化的SimpleContext对象
-        result = await runtime_service.run_agent(
-            agent=agent,
-            input_text=message,
-            session_id=session_id,
-            context=context  # 传递完整的SimpleContext对象
+        # 系统消息
+#         system_message = f"""你是一个智能助手。
+# 当前用户的名字是{user_name}。
+# 请记住这个名字，当用户询问自己的名字时，你应该回答他的名字是{user_name}。
+# 请提供简短、有帮助的回答。"""
+        
+        # 使用工厂方法创建会话和桥接器
+        context_bridge = await SessionContextBridge.create_session(
+            user_id=user_id,
+            user_name=user_name,
+            metadata=session_metadata,
+            ttl_hours=24
+            # system_message=system_message
         )
-
-        # 处理回复
-        if 'error' in result:
-            logger.error(f"第{i + 1}轮对话发生错误: {result['error']}")
-            print(f"\n错误: {result['error']}\n")
-        else:
-            output = result['output']
-            print(f"\nAI: {output}\n")
-
-            # 将助手回复添加到上下文
-            context.add_message("assistant", output)
+        
+        if not context_bridge:
+            logger.error("创建会话失败")
+            return
             
-        # 可选：展示当前上下文中的消息数量
-        logger.info(f"上下文中已累积 {len(context.messages)} 条消息")
+        # 获取会话ID以便记录
+        session_id = context_bridge.session_id
+        logger.info(f"成功创建会话: {session_id}")
+        
+        # 获取代理实例
+        template_name = "assistant_agent"
+        agent = template_manager.get_template(template_name)
+        if not agent:
+            logger.error(f"无法获取代理模板: {template_name}")
+            return
 
-    # 对话结束后显示完整历史
-    logger.info("完整对话历史：")
-    for i, msg in enumerate(context.messages):
-        role = msg.get("role", "unknown")
-        content_preview = msg.get("content", "")[:50] + ("..." if len(msg.get("content", "")) > 50 else "")
-        print(f"[{i+1}] {role}: {content_preview}")
+        logger.info(f"成功获取代理模板: {agent.name}")
+
+        # 多轮对话内容
+        conversations = [
+            "你好，请问你是谁?",
+            "苹果英文单词是什么？",
+            "我的名字是什么?",
+            "我向你提出了几个问题，分别是什么?"
+        ]
+
+        # 多轮对话
+        for i, message in enumerate(conversations):
+            logger.info(f"第{i + 1}轮对话，问题: {message}")
+            print(f"\n用户: {message}")
+
+            # 添加用户消息到会话
+            await context_bridge.add_message("user", message)
+            
+            # 获取当前上下文
+            context = await context_bridge.get_context()
+            print("===============上下文====================")
+            print(context)
+            print("============================================================")
+            # 运行代理 - 将context作为依赖注入对象传递
+            result = await runtime_service.run_agent(
+                agent=agent,
+                input_text=message,
+                session_id=session_id,
+                context=context  # 直接传递SimpleContext对象
+            )
+
+            # 处理回复
+            if 'error' in result:
+                logger.error(f"第{i + 1}轮对话发生错误: {result['error']}")
+                print(f"\n错误: {result['error']}\n")
+            else:
+                output = result['output']
+                print(f"\nAI: {output}\n")
+
+                # 将助手回复添加到会话
+                await context_bridge.add_message("assistant", output)
+                
+            # 展示当前会话中的消息数量
+            messages = await context_bridge.get_messages()
+            logger.info(f"会话中已累积 {len(messages)} 条消息")
+
+        # 对话结束后显示完整历史
+        complete_history = await context_bridge.get_messages()
+        logger.info("完整对话历史：")
+        for i, msg in enumerate(complete_history):
+            role = msg.get("role", "unknown")
+            content_preview = msg.get("content", "")[:50] + ("..." if len(msg.get("content", "")) > 50 else "")
+            print(f"[{i+1}] {role}: {content_preview}")
+        
+        # 获取最近的消息
+        recent_messages = await context_bridge.get_messages(limit=2)
+        logger.info(f"最近2条消息: {len(recent_messages)} 条")
+        
+        # 展示会话元数据
+        session = await context_bridge.get_session()
+        if session:
+            logger.info(f"会话元数据: 消息数量={session.metadata.message_count}, "
+                       f"状态={session.metadata.status}")
+        
+        # 释放资源
+        await context_bridge.close()
+
+    except Exception as e:
+        logger.exception(f"多轮对话示例出错: {str(e)}")
     
-    # 展示如何使用get_last_n_messages方法
-    recent_messages = context.get_last_n_messages(2)
-    logger.info(f"最近2条消息 (不包括系统消息): {len(recent_messages) - 1} 条")
-
+    finally:
+        # 关闭会话管理器
+        session_manager = get_session_manager()
+        await session_manager.shutdown()
+        
     logger.info("示例3：多轮对话 - 结束")
     print("-" * 80)
 
