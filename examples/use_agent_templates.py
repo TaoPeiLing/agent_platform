@@ -316,7 +316,7 @@ async def example_3_multi_turn_conversation():
 
 
 async def example_4_different_agent_templates():
-    """示例4：不同代理模板 - 比较不同代理模板的回答"""
+    """示例4：不同代理模板 -比较不同代理模板的回答"""
     logger.info("示例4：不同代理模板 - 开始")
 
     # 获取可用的模板名称
@@ -634,6 +634,158 @@ async def example_7_detailed_diagnostics():
         diag_context.add_message("system", f"诊断过程中出现错误: {str(e)}")
 
 
+async def example_8_streaming_output():
+    """示例8：流式输出 - 使用stream_agent实现实时流式响应
+    
+    这个示例展示如何使用stream_agent方法获取AI的实时流式响应，
+    适用于需要低延迟、实时显示生成内容的场景，如聊天界面和动态内容生成。
+    """
+    logger.info("示例8：流式输出 - 开始")
+    
+    # 用户信息
+    user_id = "streaming_user"
+    user_name = "流式用户"
+    
+    # 创建会话
+    session_id = runtime_service.create_session(
+        user_id=user_id,
+        metadata={"user_name": user_name, "demo_type": "streaming"}
+    )
+    logger.info(f"创建会话ID: {session_id}")
+    
+    # 创建自定义上下文
+    streaming_context = SimpleContext(
+        user_id=user_id,
+        user_name=user_name,
+        metadata={
+            "preference": "详细解释",
+            "language": "zh-CN"
+        }
+    )
+    
+    # 添加系统消息，指示AI提供详细回答
+    streaming_context.add_system_message(
+        """你是一个提供实时流式回答的AI助手。
+请提供详细、富有教育意义的回答，分步骤解释复杂概念。
+当用户提出问题时，先概述你的回答，然后提供深入的解释和例子。"""
+    )
+    
+    # 获取代理实例
+    template_name = "assistant_agent"
+    agent = template_manager.get_template(template_name)
+    if not agent:
+        logger.error(f"无法获取代理模板: {template_name}")
+        return
+    
+    logger.info(f"成功获取代理模板: {agent.name}")
+    
+    # 流式交互的问题 - 选择一个需要较长回答的问题
+    question = "请详细解释人工智能中的'大语言模型'是什么，它的工作原理，以及它的主要应用领域"
+    logger.info(f"提问: {question}")
+    print(f"\n用户: {question}\n")
+    
+    # 添加用户问题到上下文
+    streaming_context.add_message("user", question)
+    
+    # 使用stream_agent获取流式响应
+    print("\nAI正在生成回答 (流式输出)...")
+    print("-" * 50)
+    
+    full_response = ""  # 用于收集完整响应
+    
+    try:
+        # 创建流式响应生成器
+        response_stream = runtime_service.stream_agent(
+            agent=agent,
+            input_text=question,
+            session_id=session_id,
+            context=streaming_context
+        )
+        
+        # 实时处理流式响应
+        async for chunk in response_stream:
+            # 根据事件类型处理不同的响应块
+            if chunk.get("event_type") == "content":
+                # 内容块 - 打印并累积
+                content = chunk.get("content", "")
+                print(content, end="", flush=True)  # 实时输出，不换行
+                full_response += content
+            elif chunk.get("event_type") == "CompletionEvent":
+                # 完成事件 - 显示完成信息
+                print("\n\n[生成完成]")
+                logger.info("响应生成完成")
+                # 如果事件包含完整内容但我们没有收集到，使用事件中的完整内容
+                if not full_response and chunk.get("full_content"):
+                    full_response = chunk.get("full_content")
+            elif chunk.get("event_type") == "ErrorEvent" or chunk.get("event_type") == "error":
+                # 错误事件 - 显示错误信息
+                error_msg = chunk.get("content", "未知错误")
+                print(f"\n\n[错误]: {error_msg}")
+                logger.error(f"流式响应出错: {error_msg}")
+        
+        print("\n" + "-" * 50)
+        
+        # 将助手回复添加到上下文
+        if full_response:
+            streaming_context.add_message("assistant", full_response)
+            
+            # 检查上下文中的消息数量
+            message_count = len(streaming_context.messages)
+            logger.info(f"上下文现在包含 {message_count} 条消息")
+            
+            # 演示：提取上下文摘要
+            context_summary = streaming_context.get_context_summary()
+            logger.info(f"上下文摘要: {context_summary}")
+        
+        # 演示：后续问题的流式交互
+        follow_up_question = "在你刚才提到的应用领域中，哪一个对社会的影响最大？"
+        
+        if full_response:  # 只有在第一个响应成功的情况下才进行后续交互
+            print(f"\n用户: {follow_up_question}\n")
+            print("\nAI正在生成回答 (流式输出)...")
+            print("-" * 50)
+            
+            # 添加后续问题到上下文
+            streaming_context.add_message("user", follow_up_question)
+            
+            # 创建后续流式响应生成器
+            follow_up_stream = runtime_service.stream_agent(
+                agent=agent,
+                input_text=follow_up_question,
+                session_id=session_id,
+                context=streaming_context
+            )
+            
+            # 处理后续流式响应
+            follow_up_response = ""
+            async for chunk in follow_up_stream:
+                if chunk.get("event_type") == "content":
+                    content = chunk.get("content", "")
+                    print(content, end="", flush=True)
+                    follow_up_response += content
+                elif chunk.get("event_type") == "CompletionEvent":
+                    print("\n\n[生成完成]")
+                    if not follow_up_response and chunk.get("full_content"):
+                        follow_up_response = chunk.get("full_content")
+                elif chunk.get("event_type") == "ErrorEvent" or chunk.get("event_type") == "error":
+                    error_msg = chunk.get("content", "未知错误")
+                    print(f"\n\n[错误]: {error_msg}")
+            
+            print("\n" + "-" * 50)
+            
+            # 将后续回复添加到上下文
+            if follow_up_response:
+                streaming_context.add_message("assistant", follow_up_response)
+                logger.info(f"多轮流式对话完成，上下文共 {len(streaming_context.messages)} 条消息")
+    
+    except Exception as e:
+        logger.exception(f"流式输出示例异常: {str(e)}")
+        print(f"\n发生错误: {str(e)}")
+    
+    logger.info("示例8：流式输出 - 结束")
+    print("-" * 80)
+
+
 async def run_all_examples():
     """运行所有示例"""
     # 确保模板已加载
@@ -659,6 +811,9 @@ async def run_all_examples():
 
     # 详细诊断示例
     await example_7_detailed_diagnostics()
+    
+    # 流式输出示例
+    await example_8_streaming_output()
 
 
 if __name__ == "__main__":
@@ -666,8 +821,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="代理模板使用示例")
-    parser.add_argument("example", nargs="?", type=int, choices=range(1, 8),
-                        help="要运行的示例编号 (1-7)，不提供则运行所有示例")
+    parser.add_argument("example", nargs="?", type=int, choices=range(1, 9),
+                        help="要运行的示例编号 (1-8)，不提供则运行所有示例")
     args = parser.parse_args()
 
     # 确保模板已加载
@@ -682,7 +837,8 @@ if __name__ == "__main__":
             4: example_4_different_agent_templates,
             5: example_5_weather_tool,
             6: example_6_system_diagnostics,
-            7: example_7_detailed_diagnostics
+            7: example_7_detailed_diagnostics,
+            8: example_8_streaming_output
         }
         asyncio.run(examples[args.example]())
     else:

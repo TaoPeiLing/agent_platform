@@ -1159,6 +1159,32 @@ class RuntimeService:
         # 准备上下文 - 使用相同的上下文管理逻辑
         conversation_context = self._prepare_context(context, session_id)
         
+        # 准备输入消息 - 从上下文或历史中获取
+        input_messages = []
+        
+        # 从SimpleContext中提取非系统消息
+        if hasattr(conversation_context, "messages") and conversation_context.messages:
+            for msg in conversation_context.messages:
+                if msg.get("role") != "system":  # 忽略系统消息，现在通过agent.instructions传递
+                    input_messages.append(msg)
+        
+        # 如果没有从SimpleContext中找到消息，尝试从会话历史获取
+        if not input_messages:
+            history = self.get_history(session_id)
+            for item in history:
+                if item.get("role") != "system":  # 忽略系统消息
+                    input_messages.append({
+                        "role": item.get("role"),
+                        "content": item.get("content", "")
+                    })
+        
+        # 确保当前输入被添加到消息列表的最后
+        if input_text and (not input_messages or input_messages[-1].get("content") != input_text):
+            input_messages.append({
+                "role": "user",
+                "content": input_text
+            })
+        
         # 记录传递给代理的上下文，用于调试
         debug_context = {
             "has_messages": hasattr(conversation_context, "messages"),
