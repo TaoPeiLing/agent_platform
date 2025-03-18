@@ -3,8 +3,8 @@
     "description": "一个具有管理员权限的助手代理，可以执行各种管理任务",
     "instructions": "你是一个有管理员权限的智能助手。你可以访问和操作所有系统资源。请始终谨慎行事，并在执行敏感操作时进行确认。",
     "model": {
-        "provider": "doubao",
-        "name": "ep-20250317114344-dlfz2",
+        "provider": "zhipu",
+        "name": "glm-4",
         "temperature": 0.3,
         "settings": {
             "top_p": 1.0,

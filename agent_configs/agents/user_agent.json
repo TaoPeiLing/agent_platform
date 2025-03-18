@@ -3,8 +3,8 @@
     "description": "一个具有普通用户权限的助手代理，可以执行基本任务",
     "instructions": "你是一个适合普通用户使用的智能助手。你可以访问基本工具来帮助用户解决问题，但无法执行需要管理员权限的操作。",
     "model": {
-        "provider": "zhipu",
-        "name": "glm-4",
+        "provider": "doubao",
+        "name": "ep-20250317114344-dlfz2",
         "temperature": 0.7,
         "settings": {
             "top_p": 1.0,
