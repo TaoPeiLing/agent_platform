@@ -1,0 +1,132 @@
+{
+    "customer_service_triage": {
+        "type": "triage",
+        "description": "客服分诊智能体",
+        "instruction_template": "你是在线客服中心的分诊助手，负责将客户咨询分配给合适的专业客服人员。\n\n你的主要职责是:\n1. 理解客户的问题和需求类型\n2. 解答简单的一般性问题\n3. 将专业问题转交给相应的专家客服\n\n可用专家:\n{experts_text}\n\n在转交前，请向客户说明你将把问题转给专业客服，并简要说明转交的原因。"
+    },
+    "travel_expert": {
+        "type": "expert",
+        "description": "旅游咨询专家",
+        "tool_name_template": "consult_{name}_expert",
+        "description_template": "将旅游相关问题转给{agent_name}处理",
+        "input_filter_type": "summarize",
+        "summarize_prefix": "以下是用户的旅游咨询历史",
+        "keep_recent_messages": 3
+    },
+    "finance_expert": {
+        "type": "expert",
+        "description": "金融咨询专家",
+        "tool_name_template": "consult_{name}_expert",
+        "description_template": "将金融投资相关问题转给{agent_name}处理",
+        "input_filter_type": "summarize",
+        "summarize_prefix": "以下是用户的金融咨询历史",
+        "keep_recent_messages": 2
+    },
+    "product_expert": {
+        "type": "expert",
+        "description": "产品咨询专家",
+        "tool_name_template": "ask_{name}_about_product",
+        "description_template": "将产品相关问题转给{agent_name}处理",
+        "input_filter_type": "remove_tools"
+    },
+    "technical_support": {
+        "type": "expert",
+        "description": "技术支持专家",
+        "tool_name_template": "technical_support_{name}",
+        "description_template": "将技术问题转给{agent_name}处理",
+        "input_filter_type": "user_only"
+    },
+    "medical_triage": {
+        "type": "triage",
+        "description": "医疗分诊智能体",
+        "instruction_template": "你是医疗中心的分诊助手，负责将患者的问题分配给合适的专科医生。\n\n你的主要职责是:\n1. 理解患者的症状和问题\n2. 解答简单的一般性健康问题\n3. 将专业医疗问题转交给相应的专科医生\n\n可用专家:\n{experts_text}\n\n在转交前，请向患者说明你将把问题转给专科医生，并简要说明转交的原因。"
+    },
+    "tech_triage": {
+        "type": "triage",
+        "description": "技术问题分诊智能体",
+        "instruction_template": "你是技术支持中心的分诊助手，负责将用户的技术问题分配给合适的专业技术支持人员。\n\n你的主要职责是:\n1. 理解用户的技术问题和需求\n2. 解答简单的一般性技术问题\n3. 将专业技术问题转交给相应的专家\n\n可用专家:\n{experts_text}\n\n在转交前，请向用户说明你将把问题转给专业技术支持，并简要说明转交的原因。"
+    },
+    "doctor_expert": {
+        "type": "expert",
+        "description": "医疗专科医生",
+        "tool_name_template": "consult_{name}_doctor",
+        "description_template": "将医疗问题转给{agent_name}医生处理",
+        "input_filter_type": "summarize",
+        "summarize_prefix": "患者咨询历史",
+        "keep_recent_messages": 2
+    },
+    "software_expert": {
+        "type": "expert",
+        "description": "软件技术专家",
+        "tool_name_template": "consult_{name}_expert",
+        "description_template": "将软件相关问题转给{agent_name}处理",
+        "input_filter_type": "summarize",
+        "summarize_prefix": "用户咨询历史",
+        "keep_recent_messages": 3
+    },
+    "hardware_expert": {
+        "type": "expert",
+        "description": "硬件技术专家",
+        "tool_name_template": "consult_{name}_expert", 
+        "description_template": "将硬件相关问题转给{agent_name}处理",
+        "input_filter_type": "summarize",
+        "summarize_prefix": "用户咨询历史",
+        "keep_recent_messages": 2
+    },
+    "network_expert": {
+        "type": "expert",
+        "description": "网络技术专家",
+        "tool_name_template": "consult_{name}_expert",
+        "description_template": "将网络相关问题转给{agent_name}处理",
+        "input_filter_type": "summarize",
+        "summarize_prefix": "用户咨询历史",
+        "keep_recent_messages": 2
+    },
+    "admin_agent": {
+        "type": "agent",
+        "description": "管理员智能体",
+        "tool_name_template": "admin_{name}_agent",
+        "description_template": "调用{agent_name}管理员代理处理系统管理任务"
+    },
+    "assistant_agent": {
+        "type": "agent",
+        "description": "默认助手代理",
+        "tool_name_template": "assistant_{name}_agent",
+        "description_template": "{agent_name}助手代理"
+    },
+    "chinese_translator_agent": {
+        "type": "agent",
+        "description": "中文翻译智能体",
+        "tool_name_template": "translate_{name}",
+        "description_template": "使用{agent_name}翻译服务将文本翻译成地道的中文"
+    },
+    "triage_agent": {
+        "type": "triage",
+        "description": "通用分诊智能体",
+        "instruction_template": "你是分诊助手，负责将用户的问题分配给合适的专业人员。\n\n你的主要职责是:\n1. 理解用户的问题和需求类型\n2. 解答简单的一般性问题\n3. 将专业问题转交给相应的专家\n\n可用专家:\n{experts_text}\n\n在转交前，请向用户说明你将把问题转给专业人员，并简要说明转交的原因。"
+    },
+    "user_agent": {
+        "type": "agent",
+        "description": "普通用户智能体",
+        "tool_name_template": "user_{name}_agent",
+        "description_template": "调用{agent_name}用户代理处理一般任务"
+    },
+    "travel_agent": {
+        "type": "expert",
+        "description": "旅游规划专家",
+        "tool_name_template": "travel_{name}_expert",
+        "description_template": "将旅游规划问题转给{agent_name}专家处理",
+        "input_filter_type": "summarize",
+        "summarize_prefix": "用户旅游咨询历史",
+        "keep_recent_messages": 3
+    },
+    "finance_agent": {
+        "type": "expert",
+        "description": "金融顾问专家",
+        "tool_name_template": "finance_{name}_expert",
+        "description_template": "将金融投资问题转给{agent_name}专家处理",
+        "input_filter_type": "summarize",
+        "summarize_prefix": "用户金融咨询历史",
+        "keep_recent_messages": 2
+    }
+} 

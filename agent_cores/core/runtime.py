@@ -78,6 +78,9 @@ from agent_cores.models.rbac import Role
 # 导入新的Agent上下文
 from agent_cores.core.agent_context import AgentContext
 
+# 添加导入
+from agent_cores.extensions.agent_adapter import OpenAIAgentAdapter
+
 
 @dataclass
 class SessionContext:
@@ -127,6 +130,31 @@ class RuntimeService:
         # 日志记录初始化设置
         redis_status = "使用" if self.use_redis else "不使用"
         logger.info(f"运行时服务初始化，{redis_status}Redis存储上下文")
+
+    def _safely_get_agent_property(self, agent, property_name, default_value=None):
+        """
+        安全获取代理对象的属性值，避免出现'dict' object has no attribute的错误
+        
+        Args:
+            agent: 代理对象，可能是Agent实例、字典或其他类型
+            property_name: 要获取的属性名
+            default_value: 属性不存在时的默认值
+            
+        Returns:
+            属性值或默认值
+        """
+        try:
+            # 如果agent是对象并且有该属性
+            if hasattr(agent, property_name):
+                return getattr(agent, property_name)
+            # 如果agent是字典
+            elif isinstance(agent, dict) and property_name in agent:
+                return agent[property_name]
+            # 默认返回
+            return default_value
+        except:
+            logger.warning(f"无法安全获取属性: {property_name}")
+            return default_value
 
     def create_session(self,
                        user_id: Optional[str] = None,
@@ -572,42 +600,66 @@ class RuntimeService:
             
         logger.info(f"输入消息数量: {len(input_messages)}")
         
-        # 记录上下文信息用于调试
-        debug_info = {
-            "context_type": type(prepared_context).__name__,
-            "has_user_info": hasattr(prepared_context, "user_id") and hasattr(prepared_context, "user_name"),
-            "message_count": len(input_messages)
-        }
-        if hasattr(prepared_context, "get_user_info"):
-            debug_info["user_info"] = prepared_context.get_user_info()
-            
-        logger.debug(f"运行代理的上下文: {debug_info}")
-        
         try:
             # 执行代理
             logger.info("=============开始运行代理==============")
-            # logger.info(f"agent代理{agent}")
+            # 添加详细的agent调试信息
+            logger.info(f"代理类型: {type(agent)}")
+            # 使用安全访问方法
+            agent_name = self._safely_get_agent_property(agent, "name", "未知代理")
+            logger.info(f"代理名称: {agent_name}")
+            
+            # 使用OpenAIAgentAdapter预处理上下文，确保handoff对象的类型安全
+            adapter = OpenAIAgentAdapter()
+            prepared_context = adapter.pre_run_hook(prepared_context)
+            logger.info("已应用代理预处理钩子，确保handoff对象类型安全")
+            
+            # 直接使用Runner.run，移除复杂的预处理
             result = await Runner.run(
                 starting_agent=agent,
-                input=input_messages if input_messages else input_text,  # 使用消息历史或文本
-                context=prepared_context,  # 上下文仅提供给工具函数
+                input=input_messages if input_messages else input_text,
+                context=prepared_context,
                 run_config=run_config
             )
             
-            # 记录助手输出
-            if result.final_output:
-                self.add_history_item(session_id, "assistant", str(result.final_output))
-                
+            # 记录代理输出
+            self.add_history_item(session_id, "assistant", result.final_output)
+            
             # 转换结果为可序列化格式
-            return {
+            result_dict = {
                 "session_id": session_id,
+                "input": input_text,
                 "output": str(result.final_output) if result.final_output else None,
-                "items": [self._serializable_item(item) for item in result.new_items] if hasattr(self, "_serializable_item") else []
+                "success": True,
+                "items": []  # 保持简单的输出结构
             }
+            
+            # 添加handoff_result项
+            if hasattr(result, "new_items") and result.new_items:
+                # 提取items，简化版本
+                for item in result.new_items:
+                    if hasattr(item, "type"):
+                        if item.type == "handoff_result":
+                            # 处理handoff结果
+                            if hasattr(item, "content") and item.content:
+                                # 添加handoff结果到输出
+                                result_dict["items"].append({
+                                    "type": "handoff_result",
+                                    "content": {
+                                        "body": item.content.body if hasattr(item.content, "body") else "", 
+                                        "agent_name": item.content.agent_name if hasattr(item.content, "agent_name") else ""
+                                    }
+                                })
+            
+            return result_dict
+            
         except Exception as e:
             logger.error(f"执行代理出错: {str(e)}")
             return {
                 "session_id": session_id,
+                "input": input_text,
+                "output": None,
+                "success": False,
                 "error": str(e)
             }
 
@@ -711,6 +763,19 @@ class RuntimeService:
         # 准备上下文
         conversation_context = self._prepare_context(context, session_id)
         
+        # 使用OpenAIAgentAdapter预处理上下文，确保handoff对象的类型安全
+        adapter = OpenAIAgentAdapter()
+        conversation_context = adapter.pre_run_hook(conversation_context)
+        logger.info("已应用代理预处理钩子，确保handoff对象类型安全")
+        
+        # 执行代理
+        logger.info("=============开始运行代理(同步)==============")
+        # 添加详细的agent调试信息
+        logger.info(f"代理类型: {type(agent)}")
+        # 使用安全访问方法
+        agent_name = self._safely_get_agent_property(agent, "name", "未知代理")
+        logger.info(f"代理名称: {agent_name}")
+        
         # 准备输入消息 - 从上下文或历史中获取
         input_messages = []
         
@@ -749,6 +814,11 @@ class RuntimeService:
         logger.debug(f"同步代理上下文: {debug_context}")
 
         try:
+            # 使用OpenAIAgentAdapter预处理上下文，确保handoff对象的类型安全
+            adapter = OpenAIAgentAdapter()
+            conversation_context = adapter.pre_run_hook(conversation_context)
+            logger.info("已应用代理预处理钩子，确保handoff对象类型安全")
+            
             # 创建新的事件循环并在其中运行异步代码 - 简化版本
             import concurrent.futures
             
@@ -758,6 +828,12 @@ class RuntimeService:
                 asyncio.set_event_loop(new_loop)
                 
                 try:
+                    # 使用OpenAIAgentAdapter预处理上下文，确保handoff对象的类型安全
+                    # 注意：这里不需要重复处理上下文，直接使用外部已处理的conversation_context
+                    # adapter = OpenAIAgentAdapter()
+                    # conversation_context = adapter.pre_run_hook(conversation_context)
+                    logger.info("在新线程中使用已预处理的上下文，确保handoff对象类型安全")
+                    
                     # 在新的事件循环中运行异步代码
                     return new_loop.run_until_complete(
                         Runner.run(
@@ -932,6 +1008,12 @@ class RuntimeService:
 
         try:
             logger.info("准备运行代理,run_streamed获取流式结果对象...")
+            
+            # 使用OpenAIAgentAdapter预处理上下文，确保handoff对象的类型安全
+            adapter = OpenAIAgentAdapter()
+            conversation_context = adapter.pre_run_hook(conversation_context)
+            logger.info("已应用代理预处理钩子，确保handoff对象类型安全")
+            
             # 使用Runner.run_streamed获取流式结果对象
             streamed_result = Runner.run_streamed(
                 starting_agent=agent,
@@ -1078,18 +1160,16 @@ class RuntimeService:
             }
 
     async def stream_agent(self,
-                           session_id: Optional[str] = None,
-                           input_text: str = "",
-                           template_name: Optional[str] = None,
-                           agent: Optional[Agent] = None,
-                           context: Any = None,
-                           config: Optional[RunConfig] = None,
-                           system_message: Optional[str] = None) -> AsyncGenerator[Dict[str, Any], None]:
+                        session_id: Optional[str] = None,
+                        input_text: str = "",
+                        template_name: Optional[str] = None,
+                        agent: Optional[Agent] = None,
+                        context: Any = None,
+                        config: Optional[RunConfig] = None,
+                        system_message: Optional[str] = None) -> AsyncGenerator[Dict[str, Any], None]:
         """
-        流式执行代理（使用run_streamed替代旧的stream方法）
+        流式执行代理
         
-        提供事件流，适合需要处理响应内容的场景
-
         Args:
             session_id: 会话ID，如果为None则创建新会话
             input_text: 输入文本
@@ -1098,9 +1178,9 @@ class RuntimeService:
             context: 上下文对象，仅提供给工具函数使用
             config: 运行配置
             system_message: 可选的系统消息，如果提供则直接设置为代理指令
-
+            
         Yields:
-            流式执行结果
+            流式执行结果，包含事件类型和数据
         """
         # 获取或创建会话
         if session_id:
@@ -1124,40 +1204,40 @@ class RuntimeService:
                 if not agent:
                     logger.error(f"模板不存在: {template_name}")
                     yield {
-                        "session_id": session_id,
                         "event_type": "error",
-                        "content": f"代理模板不存在: {template_name}",
-                        "done": True,
-                        "error": True
+                        "data": {"error": f"代理模板不存在: {template_name}"}
                     }
                     return
             except Exception as e:
                 logger.error(f"创建代理失败: {e}")
                 yield {
-                    "session_id": session_id,
                     "event_type": "error",
-                    "content": f"代理模板不存在: {template_name}",
-                    "done": True,
-                    "error": True
+                    "data": {"error": f"创建代理失败: {str(e)}"}
                 }
                 return
-        
+        # 如果已提供agent但同时也提供了system_message，使用系统消息覆盖指令
+        elif agent and system_message:
+            agent = agent.clone(instructions=system_message)
+            logger.info(f"使用提供的系统消息覆盖代理指令: {system_message[:50]}...")
+
         if agent is None:
             logger.error("未提供代理实例或有效的模板名称")
             yield {
-                "session_id": session_id,
                 "event_type": "error",
-                "content": "未指定代理",
-                "done": True,
-                "error": True
+                "data": {"error": "未指定代理"}
             }
             return
 
         # 准备运行配置
         run_config = config or self.default_config
 
-        # 准备上下文 - 使用相同的上下文管理逻辑
+        # 准备上下文
         conversation_context = self._prepare_context(context, session_id)
+        
+        # 使用OpenAIAgentAdapter预处理上下文，确保handoff对象的类型安全
+        adapter = OpenAIAgentAdapter()
+        conversation_context = adapter.pre_run_hook(conversation_context)
+        logger.info("已应用代理预处理钩子，确保handoff对象类型安全")
         
         # 准备输入消息 - 从上下文或历史中获取
         input_messages = []
