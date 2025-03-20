@@ -15,7 +15,7 @@ from typing import Dict, List, Optional, Tuple, Any, Union
 from agent_cores.security.models import APIKey, APIKeyResponse, APIKeyInfo, KeyStatus, AuthResult, ServiceAccount
 from agent_cores.security.utils import (
     generate_api_key, format_api_key, split_api_key, 
-    hash_secret, verify_secret, calculate_expiry, is_key_expired
+    hash_secret, verify_secret, calculate_expiry, is_key_expired, generate_random_string
 )
 
 # 配置日志
@@ -29,12 +29,19 @@ class APIKeyManager:
     提供API密钥的创建、验证、撤销和轮换等功能。
     """
     
-    def __init__(self, storage_dir: Optional[str] = None):
+    def __init__(self, 
+                 storage_dir: Optional[str] = None,
+                 default_expiry_days: int = 90,
+                 key_prefix_length: int = 8,
+                 key_secret_length: int = 32):
         """
         初始化API密钥管理器
         
         Args:
             storage_dir: 密钥存储目录，默认为项目根目录下的data/security/keys
+            default_expiry_days: 默认的密钥有效期（天数）
+            key_prefix_length: 密钥前缀长度
+            key_secret_length: 密钥主体长度
         """
         if storage_dir is None:
             # 默认存储在项目根目录下的data/security/keys
@@ -42,6 +49,9 @@ class APIKeyManager:
             storage_dir = os.path.join(project_root, "data", "security", "keys")
             
         self.storage_dir = storage_dir
+        self.default_expiry_days = default_expiry_days
+        self.key_prefix_length = key_prefix_length
+        self.key_secret_length = key_secret_length
         self.api_keys: Dict[str, APIKey] = {}  # 前缀到密钥的映射
         self.service_accounts: Dict[str, ServiceAccount] = {}  # 服务账户ID到服务账户的映射
         
@@ -336,7 +346,7 @@ class APIKeyManager:
     def create_api_key(self,
                        service_account_id: str,
                        description: str,
-                       expires_in_days: Optional[int] = 90,
+                       expires_in_days: Optional[int] = None,
                        permissions: Optional[List[str]] = None,
                        metadata: Optional[Dict[str, Any]] = None) -> Optional[APIKeyResponse]:
         """
@@ -345,7 +355,7 @@ class APIKeyManager:
         Args:
             service_account_id: 服务账户ID
             description: 密钥用途描述
-            expires_in_days: 有效期天数，None表示永不过期
+            expires_in_days: 有效期天数，None表示使用默认值(self.default_expiry_days)
             permissions: 权限列表，None表示继承服务账户权限
             metadata: 元数据
             
@@ -364,11 +374,12 @@ class APIKeyManager:
             return None
             
         # 生成密钥
-        prefix, secret = generate_api_key()
+        prefix = generate_random_string(self.key_prefix_length)
+        secret = generate_random_string(self.key_secret_length)
         full_key = format_api_key(prefix, secret)
         
         # 计算过期时间
-        expires_at = calculate_expiry(expires_in_days)
+        expires_at = calculate_expiry(expires_in_days or self.default_expiry_days)
         
         # 使用继承的权限或指定的权限
         key_permissions = permissions if permissions is not None else service_account.permissions.copy()
@@ -548,7 +559,7 @@ class APIKeyManager:
     def rotate_api_key(self,
                        old_key_prefix: str,
                        new_description: Optional[str] = None,
-                       expires_in_days: Optional[int] = 90,
+                       expires_in_days: Optional[int] = None,
                        permissions: Optional[List[str]] = None) -> Optional[APIKeyResponse]:
         """
         轮换API密钥
@@ -558,7 +569,7 @@ class APIKeyManager:
         Args:
             old_key_prefix: 旧密钥前缀
             new_description: 新密钥描述，默认使用旧密钥的描述
-            expires_in_days: 新密钥有效期天数
+            expires_in_days: 新密钥有效期天数，None表示使用默认值(self.default_expiry_days)
             permissions: 新密钥权限列表，默认继承旧密钥的权限
             
         Returns:

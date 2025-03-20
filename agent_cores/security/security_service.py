@@ -15,6 +15,12 @@ from agent_cores.security.jwt_auth import jwt_auth_service, JWTAuthService
 from agent_cores.security.models import AuthResult, ServiceAccount, APIKeyResponse, APIKeyInfo
 from agent_cores.models.rbac import Role
 
+# 延迟导入，避免循环导入
+try:
+    from agent_cores.security.guardrails import GuardrailsService
+except ImportError:
+    GuardrailsService = None
+
 # 配置日志
 logger = logging.getLogger(__name__)
 
@@ -28,16 +34,19 @@ class SecurityService:
     
     def __init__(self, 
                  api_key_manager: APIKeyManager = None,
-                 jwt_auth_service: JWTAuthService = None):
+                 jwt_auth_service: JWTAuthService = None,
+                 guardrails_service: 'GuardrailsService' = None):
         """
         初始化安全服务
         
         Args:
             api_key_manager: API密钥管理器
             jwt_auth_service: JWT认证服务
+            guardrails_service: 内容安全与操作限制服务
         """
         self.api_key_manager = api_key_manager or globals()["api_key_manager"]
         self.jwt_auth_service = jwt_auth_service or globals()["jwt_auth_service"]
+        self.guardrails_service = guardrails_service or globals().get("guardrails_service")
         
         logger.info("安全服务已初始化")
     
@@ -366,6 +375,76 @@ class SecurityService:
                 logger.error(f"迁移旧版API密钥失败: {key_id}, 错误: {str(e)}")
                 
         return migrated_count
+    
+    def check_content(self, content: str, context: Optional[Dict[str, Any]] = None):
+        """
+        检查内容是否安全
+        
+        Args:
+            content: 要检查的内容
+            context: 上下文信息
+            
+        Returns:
+            内容检查结果
+        """
+        if not self.guardrails_service:
+            logger.warning("未配置guardrails_service，无法进行内容安全检查")
+            return None
+            
+        return self.guardrails_service.check_content(content, context)
+    
+    def check_rate_limit(self, key: str, limit_type: str = "default") -> bool:
+        """
+        检查是否超过频率限制
+        
+        Args:
+            key: 请求标识
+            limit_type: 限制类型
+            
+        Returns:
+            是否允许请求
+        """
+        if not self.guardrails_service:
+            logger.warning("未配置guardrails_service，无法进行频率限制检查")
+            return True
+            
+        return self.guardrails_service.check_rate_limit(key, limit_type)
+    
+    def check_resource_quota(self, user_id: str, resource_type: str, amount: int = 1) -> bool:
+        """
+        检查资源配额
+        
+        Args:
+            user_id: 用户ID
+            resource_type: 资源类型
+            amount: 资源量
+            
+        Returns:
+            是否有足够的配额
+        """
+        if not self.guardrails_service:
+            logger.warning("未配置guardrails_service，无法进行资源配额检查")
+            return True
+            
+        return self.guardrails_service.check_resource_quota(user_id, resource_type, amount)
+    
+    def use_resource_quota(self, user_id: str, resource_type: str, amount: int = 1) -> bool:
+        """
+        使用资源配额
+        
+        Args:
+            user_id: 用户ID
+            resource_type: 资源类型
+            amount: 资源量
+            
+        Returns:
+            是否成功使用配额
+        """
+        if not self.guardrails_service:
+            logger.warning("未配置guardrails_service，无法进行资源配额使用")
+            return True
+            
+        return self.guardrails_service.use_resource_quota(user_id, resource_type, amount)
 
 
 # 创建全局安全服务实例

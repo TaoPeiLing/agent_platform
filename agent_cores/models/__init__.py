@@ -7,19 +7,13 @@
 # 导出RBAC模块
 from .rbac import (
     Role,
-    ResourceType,
     Permission,
-    RolePermissions,
-    RBACManager,
-    rbac_manager
+    RBACService
 )
 
 __all__ = [
     # RBAC相关
     'Role',
-    'ResourceType',
     'Permission',
-    'RolePermissions',
-    'RBACManager',
-    'rbac_manager'
+    'RBACService'
 ] 
