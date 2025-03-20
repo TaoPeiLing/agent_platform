@@ -21,11 +21,11 @@ class KeyStatus(enum.Enum):
 @dataclass
 class APIKey:
     """API密钥模型"""
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     prefix: str  # 密钥前缀（公开部分，通常8个字符）
     secret_hash: str  # 密钥主体的哈希值（存储时使用）
     service_account_id: str  # 关联的服务账户ID
     description: str  # 密钥用途描述
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     permissions: List[str] = field(default_factory=list)  # 权限列表
     created_at: datetime = field(default_factory=datetime.now)
     expires_at: Optional[datetime] = None  # 过期时间，None表示永不过期
@@ -113,9 +113,9 @@ class AuthResult:
 @dataclass
 class ServiceAccount:
     """服务账户"""
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str  # 服务账户名称
     description: str  # 描述
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     owner_id: Optional[str] = None  # 所有者ID (可以是用户或组织)
     roles: List[str] = field(default_factory=list)  # 角色列表
     permissions: List[str] = field(default_factory=list)  # 权限列表

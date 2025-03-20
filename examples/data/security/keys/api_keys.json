@@ -40,5 +40,47 @@
     "status": "revoked",
     "expires_at": "2025-06-17T22:50:07.310397",
     "last_used_at": "2025-03-19T22:50:07.994914"
+  },
+  {
+    "id": "bec31a1d-b4a6-453b-b2ce-e42fbc1afd2a",
+    "prefix": "Tbllb2nE",
+    "secret_hash": "$2b$12$tGJ9naE8.DzGsdxqrCBHXud8jX55WxyLuXTekWoc2FfY./ZqHV3s2",
+    "service_account_id": "61c99787-8a77-4a74-af9a-e7758dbe1d84",
+    "description": "测试密钥",
+    "permissions": [
+      "api.read"
+    ],
+    "created_at": "2025-03-20T11:33:08.281234",
+    "status": "revoked",
+    "expires_at": "2025-06-18T11:33:08.055012",
+    "last_used_at": "2025-03-20T11:33:08.507711"
+  },
+  {
+    "id": "8ad0f39e-7480-4817-ad01-aa722dd95a40",
+    "prefix": "CCd0vhYm",
+    "secret_hash": "$2b$12$8Iw9UHCaOl3MLwjP31d.3.06Rh1IJOJP2i1G3nSliB1ygEowfsz7q",
+    "service_account_id": "61c99787-8a77-4a74-af9a-e7758dbe1d84",
+    "description": "轮换后的测试密钥 (轮换于 2025-03-20)",
+    "permissions": [
+      "api.read"
+    ],
+    "created_at": "2025-03-20T11:33:08.735188",
+    "status": "active",
+    "expires_at": "2025-09-16T11:33:08.509743"
+  },
+  {
+    "id": "21cf0b94-55b8-4619-9567-c8ab12c16df3",
+    "prefix": "jzHnMa6N",
+    "secret_hash": "$2b$12$k702zA90R7gsg32mAyI6juuzX7sYHBTOHSUOs6ljnz85rvyac4tPG",
+    "service_account_id": "e1031fa4-2d87-4e57-8f5c-dd69038a4933",
+    "description": "综合测试密钥",
+    "permissions": [
+      "api.read",
+      "api.write"
+    ],
+    "created_at": "2025-03-20T11:33:08.969561",
+    "status": "revoked",
+    "expires_at": "2025-06-18T11:33:08.745531",
+    "last_used_at": "2025-03-20T11:33:09.425284"
   }
 ]
