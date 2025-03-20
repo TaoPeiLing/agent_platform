@@ -1,0 +1,44 @@
+[
+  {
+    "id": "8e20da53-c687-45b4-90fc-fe328a77bbc5",
+    "prefix": "49b5aiHJ",
+    "secret_hash": "$2b$12$tSQ6VeLCBgMSVx2XpV.YLOTPqD9OnsorsBLUjUIGUEvx7fAbpmRQm",
+    "service_account_id": "e474d6fc-04d8-43df-b554-babc1e8aed2f",
+    "description": "测试密钥",
+    "permissions": [
+      "api.read"
+    ],
+    "created_at": "2025-03-19T22:50:06.845386",
+    "status": "revoked",
+    "expires_at": "2025-06-17T22:50:06.619969",
+    "last_used_at": "2025-03-19T22:50:07.071357"
+  },
+  {
+    "id": "5c82168b-7851-4545-969a-e1f63d4bbd86",
+    "prefix": "AVzq0JA8",
+    "secret_hash": "$2b$12$sK.fXpGtRtbaw9yRhAg3P.ZenIC8eMSftawKAa5OGC65T3d6ojpeq",
+    "service_account_id": "e474d6fc-04d8-43df-b554-babc1e8aed2f",
+    "description": "轮换后的测试密钥 (轮换于 2025-03-19)",
+    "permissions": [
+      "api.read"
+    ],
+    "created_at": "2025-03-19T22:50:07.297995",
+    "status": "active",
+    "expires_at": "2025-09-15T22:50:07.074643"
+  },
+  {
+    "id": "50a05c87-9ba2-4738-bc93-9d6d52aec061",
+    "prefix": "t7qAcXjW",
+    "secret_hash": "$2b$12$U5YJsskYJViofmHt.tgzx.dlZ4g3AkB3HZB8gdGGouiu1ogLDjC8y",
+    "service_account_id": "bac2cab6-b8d8-4645-b5bf-46351c01a4a5",
+    "description": "综合测试密钥",
+    "permissions": [
+      "api.read",
+      "api.write"
+    ],
+    "created_at": "2025-03-19T22:50:07.533818",
+    "status": "revoked",
+    "expires_at": "2025-06-17T22:50:07.310397",
+    "last_used_at": "2025-03-19T22:50:07.994914"
+  }
+]

@@ -1,0 +1,55 @@
+{
+  "api_key_settings": {
+    "storage_dir": "data/security/keys",
+    "default_expiry_days": 90,
+    "key_prefix_length": 8,
+    "key_secret_length": 32,
+    "auto_create_service_account": true
+  },
+  "jwt_settings": {
+    "algorithm": "HS256",
+    "access_token_expire_minutes": 30,
+    "refresh_token_expire_days": 7,
+    "token_issuer": "sss_agent_platform"
+  },
+  "guardrails": {
+    "default_rate_limit": 10,
+    "default_time_window": 60,
+    "api_rate_limit": 100,
+    "api_time_window": 60,
+    "model_rate_limit": 20,
+    "model_time_window": 60,
+    "model_token_limit": 100000,
+    "model_call_limit": 1000,
+    "api_call_limit": 5000,
+    "storage_limit_mb": 100,
+    "sensitive_patterns": [
+      "(password|密码)\\s*[:=]\\s*\\S+",
+      "(api[\\s-]?key|apikey|token|secret|access[\\s-]?key)\\s*[:=]\\s*\\S+",
+      "\\b\\d{16,19}\\b",
+      "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+      "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"
+    ]
+  },
+  "auth_settings": {
+    "require_auth": true,
+    "default_auth_scheme": "api_key",
+    "excluded_paths": [
+      "/health",
+      "/docs",
+      "/redoc",
+      "/openapi.json",
+      "/auth/login",
+      "/auth/refresh"
+    ]
+  },
+  "rbac_settings": {
+    "default_roles": {
+      "anonymous": [],
+      "user": ["api.read", "agent.read", "agent.execute"],
+      "developer": ["api.read", "api.write", "agent.read", "agent.write", "agent.execute"],
+      "admin": ["api.read", "api.write", "api.admin", "user.read", "user.write", "user.admin", "agent.read", "agent.write", "agent.admin", "agent.execute", "system.read", "system.write"],
+      "system": ["api.read", "api.write", "api.admin", "user.read", "user.write", "user.admin", "agent.read", "agent.write", "agent.admin", "agent.execute", "system.read", "system.write", "system.admin"]
+    }
+  }
+} 
