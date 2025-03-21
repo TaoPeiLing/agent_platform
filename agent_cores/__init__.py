@@ -30,3 +30,5 @@ try:
 except ImportError:
     # 扩展模块可能不可用
     pass
+
+from . import connectors
